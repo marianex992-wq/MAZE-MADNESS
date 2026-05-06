@@ -2,405 +2,188 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MAZE MADNESS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MAZE MADNESS ULTIMATE</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Oswald:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@900&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --p: #fe2c55; /* Neonová Růžová */
-            --accent: #25F4EE; /* Neonová Tyrkysová */
-            --gold: #FFD700; 
-            --bg: #05050a; /* Černomodré pozadí */
-            --font-game: 'Oswald', sans-serif;
-            --font-ui: 'Montserrat', sans-serif;
-        }
+        :root { --p: #fe2c55; --accent: #25F4EE; --gold: #FFD700; }
+        * { box-sizing: border-box; touch-action: none; user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+
+        /* LOBBY FULLSCREEN */
+        .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5000; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); }
+        .card { width: 90%; max-width: 450px; background: rgba(20, 20, 30, 0.8); backdrop-filter: blur(15px); padding: 30px; border-radius: 40px; border: 2px solid rgba(255,255,255,0.1); text-align: center; }
         
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            touch-action: none;
-            user-select: none;
-        }
+        h1 { font-family: 'Bungee', cursive; font-size: 2.5rem; color: var(--p); text-shadow: 3px 3px 0px #000, 0 0 20px var(--p); margin: 0; transform: skew(-5deg); }
+        input { width: 100%; padding: 18px; margin: 10px 0; border-radius: 15px; border: 2px solid rgba(255,255,255,0.1); background: #000; color: #fff; text-align: center; font-size: 1rem; }
+        .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; font-family: 'Bungee'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-main { background: var(--p); color: #fff; box-shadow: 0 5px 0 #b01d3b; }
+        .btn-acc { background: var(--accent); color: #000; box-shadow: 0 5px 0 #1abfb9; }
+        .btn:active { transform: translateY(3px); box-shadow: none; }
 
-        body { 
-            margin: 0; 
-            font-family: var(--font-ui);
-            background: var(--bg); 
-            overflow: hidden; 
-            position: fixed; 
-            width: 100%; 
-            height: 100%; 
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        /* GAME AREA */
+        #game { display: none; width: 100vw; height: 100vh; position: relative; }
+        #map { width: 100%; height: 100%; position: absolute; }
 
-        /* --- ANIMOVANÉ 3D GRID POZADÍ (LOBBY UŽ NENÍ PRÁZDNÉ) --- */
-        .bg-animation {
-            position: absolute;
-            inset: -100px;
-            background-image: 
-                linear-gradient(rgba(37, 244, 238, 0.05) 2px, transparent 2px),
-                linear-gradient(90deg, rgba(37, 244, 238, 0.05) 2px, transparent 2px);
-            background-size: 60px 60px;
-            background-position: center center;
-            transform: perspective(1000px) rotateX(60deg) translateY(0px);
-            animation: gridMove 8s linear infinite;
-            z-index: 0;
-            opacity: 0.4;
-        }
-
-        @keyframes gridMove {
-            0% { transform: perspective(1000px) rotateX(60deg) translateY(0px); }
-            100% { transform: perspective(1000px) rotateX(60deg) translateY(60px); }
-        }
-        
-        .screen { 
+        /* STYLOVÉ KOSTKY (ZDI) */
+        .obs { 
             position: absolute; 
-            inset: 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 1000; 
-            padding: 20px;
-            background: radial-gradient(circle at center, transparent 0%, rgba(5,5,10,0.8) 100%);
-        }
-        
-        /* --- GLASSMORPHISM KARTA (ROZTAŽENĚJŠÍ A HEZČÍ) --- */
-        .card { 
-            background: rgba(255, 255, 255, 0.03); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px); 
-            padding: 40px; 
-            border-radius: 40px; 
-            text-align: center; 
-            width: 100%; 
-            max-width: 420px; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 40px 100px rgba(0,0,0,0.9), inset 0 0 20px rgba(255,255,255,0.02);
-            position: relative;
+            border-radius: 6px; 
+            border: 3px solid rgba(0,0,0,0.3); 
+            box-shadow: inset 5px 5px 15px rgba(255,255,255,0.1), 5px 5px 10px rgba(0,0,0,0.5);
         }
 
-        h1 { 
-            font-family: var(--font-game);
-            margin: 0 0 5px 0; 
-            font-size: 46px; 
-            font-weight: 900; 
-            text-transform: uppercase; 
-            color: #fff; 
-            text-shadow: 0 0 30px var(--p); 
-            letter-spacing: -1px;
-            font-style: italic;
-        }
-        .subtitle { font-size: 12px; opacity: 0.6; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 30px; font-weight: 700; color: var(--accent); }
+        /* BIOM DETAILY */
+        .ocean-fx { background: url('https://www.transparenttextures.com/patterns/cubes.png'); animation: wave 10s infinite linear; }
+        @keyframes wave { from { background-position: 0 0; } to { background-position: 100px 100px; } }
 
-        input { 
-            width: 100%; 
-            padding: 18px; 
-            margin: 10px 0; 
-            border: 2px solid rgba(255,255,255,0.05); 
-            border-radius: 20px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            text-align: center; 
-            outline: none; 
-            background: rgba(0,0,0,0.4); 
-            color: #fff; 
-            transition: 0.3s; 
-        }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(37,244,238,0.2); }
+        /* HRÁČI */
+        .player { position: absolute; width: 35px; height: 35px; border-radius: 10px; border: 3px solid #fff; z-index: 100; transition: 0.1s linear; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .p-name { position: absolute; top: -28px; font-size: 12px; font-weight: 900; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 5px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.2); }
 
-        .btn { 
-            background: var(--p); 
-            color: #fff; 
-            border: none; 
-            padding: 18px; 
-            border-radius: 20px; 
-            cursor: pointer; 
-            width: 100%; 
-            font-family: var(--font-game);
-            font-weight: 700; 
-            font-size: 18px; 
-            text-transform: uppercase; 
-            transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            margin-top: 15px; 
-            letter-spacing: 1px;
-            box-shadow: 0 10px 25px rgba(254,44,85,0.4);
-        }
-        .btn:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(254,44,85,0.6); }
-        .btn:active { transform: scale(0.95); }
+        /* CÍL */
+        .goal { position: absolute; width: 80px; height: 80px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 50px var(--gold); display: flex; align-items: center; justify-content: center; color: #000; font-family: 'Bungee'; animation: pulse 1s infinite alternate; z-index: 50; }
+        @keyframes pulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.2); opacity: 1; } }
 
-        .btn-sec { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); box-shadow: none; color: #fff; }
-        .btn-accent { background: var(--accent); color: #000; box-shadow: 0 10px 25px rgba(37,244,238,0.4); }
+        /* HUD */
+        .hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 4000; pointer-events: none; }
+        .stat { background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 20px; border: 2px solid var(--accent); font-family: 'Bungee'; font-size: 1.2rem; }
 
-        /* OBTÍŽNOST BOX */
-        .diff-box { display: flex; gap: 10px; margin: 15px 0; }
-        .diff-opt { 
-            flex: 1; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 15px; 
-            font-size: 11px; font-weight: 900; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); 
-            transition: 0.3s; color: rgba(255,255,255,0.4);
-        }
-        .diff-opt.active { background: #fff; color: #000; box-shadow: 0 0 20px #fff; transform: scale(1.05); }
-
-        /* LOBBY LIST */
-        #lobby-list { text-align:left; padding:20px; background: rgba(0,0,0,0.4); border-radius:25px; margin:20px 0; min-height: 140px; border: 1px solid rgba(255,255,255,0.05); }
-        .player-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .player-ready { color: var(--accent); font-weight: 900; text-shadow: 0 0 10px var(--accent); }
-
-        /* PENĚŽENKA A SHOP V ROHECH */
-        .top-ui { position: fixed; top: 25px; left: 25px; right: 25px; display: flex; justify-content: space-between; align-items: center; z-index: 5000; }
-        .wallet-ui { 
-            background: rgba(0,0,0,0.8); 
-            padding: 12px 25px; 
-            border-radius: 50px; 
-            border: 2px solid var(--gold); 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            box-shadow: 0 0 30px rgba(255,215,0,0.2);
-            backdrop-filter: blur(10px);
-        }
-        .wallet-ui span { color: var(--gold); font-weight: 900; font-size: 22px; }
-
-        #game { display: none; width: 100vw; height: 100vh; position: relative; z-index: 10; }
-        #map { width: 100%; height: calc(100% - 160px); position: absolute; top: 0; }
-        
-        .player { position: absolute; width: 30px; height: 30px; border-radius: 10px; z-index: 500; transition: 0.1s linear; border: 3px solid #fff; }
-        .obs { position: absolute; width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.05); }
-
-        #hud { position: fixed; top: 20px; width: 100%; text-align: center; font-family: var(--font-game); font-size: 22px; z-index: 2000; color: #fff; }
-
-        #bottom-bar { position: fixed; bottom: 0; width: 100%; height: 170px; background: rgba(0,0,0,0.95); border-top: 2px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; z-index: 3000; }
-        #controls { display: grid; grid-template-columns: repeat(3, 85px); gap: 15px; }
-        .c-btn { width: 85px; height: 85px; background: #1a1a2a; border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; font-size: 35px; color: #fff; }
-        .c-btn:active { background: #fff; color: #000; transform: scale(0.9); }
-
+        /* OVLÁDÁNÍ */
+        #controls { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; z-index: 4500; }
+        .c-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); border: 2px solid #fff; border-radius: 25px; color: #fff; font-size: 30px; }
     </style>
 </head>
 <body>
 
-<div class="bg-animation"></div>
-
-<div class="top-ui">
-    <div class="wallet-ui">💰 <span id="coin-val">0</span></div>
-    <button class="btn btn-sec" id="shop-btn-lobby" onclick="openShop()" style="width:auto; margin:0; padding:10px 25px; border-radius:50px; font-size:14px; border:2px solid var(--accent); color:var(--accent)">SHOP</button>
+<div class="hud">
+    <div class="stat" style="color: var(--gold);">💰 <span id="coins">0</span></div>
+    <div id="biom-name" class="stat" style="color: var(--accent);">ČEKÁM...</div>
 </div>
 
 <div id="screen-start" class="screen">
     <div class="card">
         <h1>MAZE MADNESS</h1>
-        <div class="subtitle">MULTIPLAYER LABYRINT</div>
-        
-        <input id="nick" placeholder="TVOJE PŘEZDÍVKA" maxlength="10">
-        
-        <div class="diff-box">
-            <div class="diff-opt active" onclick="setDiff('easy', 10, this)">EASY</div>
-            <div class="diff-opt" onclick="setDiff('hard', 15, this)">HARD</div>
-            <div class="diff-opt" onclick="setDiff('extrem', 30, this)">EXTREM</div>
-        </div>
-        
-        <button class="btn" onclick="hostHru()">VYTVOŘIT HRU</button>
-        <div style="margin: 20px 0; height: 1px; background: rgba(255,255,255,0.1);"></div>
-        <input id="room-input" placeholder="KÓD POKOJE">
-        <button class="btn btn-accent" onclick="pripojHru()">PŘIPOJIT SE</button>
-    </div>
-</div>
-
-<div id="screen-lobby" class="screen" style="display:none">
-    <div class="card">
-        <div style="font-size:11px; opacity:0.5; letter-spacing:2px;">KÓD POKOJE</div>
-        <div id="display-code" style="font-size:50px; font-weight:900; color:var(--accent); margin-bottom:15px;">----</div>
-        <div id="lobby-list"></div>
-        <div style="margin-bottom:20px; font-weight:bold; text-transform:uppercase;">MÓD: <span id="mode-text" style="color:var(--p)">EASY</span></div>
-        <button id="start-btn" class="btn" style="display:none" onclick="odstartovat()">ODSTARTOVAT ZÁPAS</button>
-        <p id="wait-msg">ČEKÁME NA HOSTITELE...</p>
-    </div>
-</div>
-
-<div id="screen-shop" class="screen" style="display:none">
-    <div class="card">
-        <h1>SKIN SHOP</h1>
-        <div class="shop-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div class="shop-item owned selected" onclick="buySkin('default', 0)" style="padding:15px; background:rgba(255,255,255,0.05); border-radius:20px; border:2px solid #fff">ZÁKLADNÍ</div>
-            <div class="shop-item" onclick="buySkin('neon', 50)" style="padding:15px; background:rgba(255,255,255,0.05); border-radius:20px;">NEON (50)</div>
-            <div class="shop-item" onclick="buySkin('gold', 100)" style="padding:15px; background:rgba(255,255,255,0.05); border-radius:20px;">GOLD (100)</div>
-            <div class="shop-item" onclick="buySkin('rainbow', 250)" style="padding:15px; background:rgba(255,255,255,0.05); border-radius:20px;">RAINBOW (250)</div>
-        </div>
-        <button class="btn btn-sec" onclick="closeShop()">ZPĚT</button>
-    </div>
-</div>
-
-<div id="win-screen" class="screen" style="display:none">
-    <div class="card">
-        <h1 style="color:var(--gold);">MISTR!</h1>
-        <p>Hra dokončena.</p>
-        <button class="btn" onclick="location.reload()">MENU</button>
+        <input id="nick" placeholder="TVOJE PŘEZDÍVKA" maxlength="12">
+        <button class="btn btn-main" onclick="start(true)">VYTVOŘIT SERVER (7 MAP)</button>
+        <div style="margin: 15px; opacity: 0.3;">——— NEBO ———</div>
+        <input id="room-id" placeholder="KÓD SERVERU">
+        <button class="btn btn-acc" onclick="start(false)">PŘIPOJIT SE</button>
+        <button class="btn" style="background: #222;" onclick="alert('Shop se otevírá...')">SHOP</button>
     </div>
 </div>
 
 <div id="game">
-    <div id="hud"><span id="biom-name">MAPA</span> | LVL: <span id="lvl">1</span> / <span id="max-lvl">10</span></div>
-    <div id="waiting" style="position:fixed; top:40%; width:100%; text-align:center; font-size:30px; display:none; color:var(--gold); z-index:5000;">ČEKÁNÍ...</div>
     <div id="map"></div>
-    <div id="bottom-bar">
-        <div id="controls">
-            <div></div><button class="c-btn" onpointerdown="pohyb('u')">▲</button><div></div>
-            <button class="c-btn" onpointerdown="pohyb('l')">◀</button>
-            <button class="c-btn" onpointerdown="pohyb('d')">▼</button>
-            <button class="c-btn" onpointerdown="pohyb('r')">▶</button>
-        </div>
+    <div id="controls">
+        <div></div><button class="c-btn" onpointerdown="move('u')">▲</button><div></div>
+        <button class="c-btn" onpointerdown="move('l')">◀</button>
+        <button class="c-btn" onpointerdown="move('d')">▼</button>
+        <button class="c-btn" onpointerdown="move('r')">▶</button>
     </div>
 </div>
 
 <script>
-// --- VŠECHNY TVOJE FUNKCE ZŮSTALY (JSOU JEN PŘIPOJENY NA NOVÝ VZHLED) ---
+// --- KONFIGURACE (Použij svůj Firebase) ---
 const firebaseConfig = { databaseURL: "https://mejdrixgame-default-rtdb.firebaseio.com/" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let mujId = "u" + Math.floor(Math.random() * 9999);
-let mojeJmeno = "", mojeMisto = "", jeHost = false, aktualniLevel = 1, hotov = false;
-let mojePos = { x: 30, y: 30 };
-let obtiznost = "easy", maxLevelu = 10;
+let myId = "u" + Math.floor(Math.random()*9999);
+let myPos = { x: 100, y: 100 };
+let roomId = "";
+let isFinished = false;
 
-let coins = parseInt(localStorage.getItem('mm_coins')) || 0;
-let ownedSkins = JSON.parse(localStorage.getItem('mm_skins')) || ['default'];
-let activeSkin = localStorage.getItem('mm_active_skin') || 'default';
-
-document.getElementById('coin-val').innerText = coins;
-
-const mapy = [
-    { n: "OCEÁN", bg: "#001a2a", ob: "#25F4EE" },
-    { n: "PEKLO", bg: "#1a0000", ob: "#fe2c55" },
-    { n: "POUŠŤ", bg: "#2a1a00", ob: "#FFD700" }
+// --- 7 BIOMŮ S DETAILY ---
+const biomes = [
+    { n: "OCEÁN", bg: "#004466", wall: "#0088cc", fx: "ocean-fx" },
+    { n: "POUŠŤ", bg: "#edc9af", wall: "#c29a6b", fx: "" },
+    { n: "TEMNÝ LES", bg: "#0a2e0a", wall: "#1b4d1b", fx: "" },
+    { n: "PEKLO", bg: "#330000", wall: "#ff4400", fx: "" },
+    { n: "VESMÍR", bg: "#050505", wall: "#333344", fx: "" },
+    { n: "MĚSTO", bg: "#222", wall: "#555", fx: "" },
+    { n: "LEDOPÁD", bg: "#e0ffff", wall: "#00ffff", fx: "" }
 ];
 
-function setDiff(d, m, el) {
-    obtiznost = d; maxLevelu = m;
-    document.querySelectorAll('.diff-opt').forEach(o => o.classList.remove('active'));
-    el.classList.add('active');
-}
-
-function openShop() { 
-    document.getElementById('screen-start').style.display = 'none';
-    document.getElementById('screen-shop').style.display = 'flex';
-}
-function closeShop() { 
-    document.getElementById('screen-shop').style.display = 'none';
-    document.getElementById('screen-start').style.display = 'flex';
-}
-
-async function hostHru() {
-    mojeJmeno = document.getElementById('nick').value || "Hráč";
-    mojeMisto = Math.floor(1000 + Math.random() * 9000).toString();
-    jeHost = true;
-    await db.ref('rooms/' + mojeMisto).set({ status: 'lobby', level: 1, mode: obtiznost, maxLvl: maxLevelu });
-    vstoupitDoLobby();
-}
-
-async function pripojHru() {
-    mojeJmeno = document.getElementById('nick').value || "Hráč";
-    mojeMisto = document.getElementById('room-input').value;
-    if(!mojeMisto) return;
-    const snap = await db.ref('rooms/' + mojeMisto).once('value');
-    if(snap.exists()) {
-        obtiznost = snap.val().mode; maxLevelu = snap.val().maxLvl;
-        vstoupitDoLobby();
-    }
-}
-
-function vstoupitDoLobby() {
-    document.getElementById('screen-start').style.display = 'none';
-    document.getElementById('screen-lobby').style.display = 'flex';
-    document.getElementById('display-code').innerText = mojeMisto;
-    document.getElementById('mode-text').innerText = obtiznost.toUpperCase();
-    if(jeHost) document.getElementById('start-btn').style.display = 'block';
-
-    db.ref('rooms/'+mojeMisto+'/players/'+mujId).set({ name: mojeJmeno, x: 30, y: 30, skin: activeSkin, finish: false });
-    db.ref('rooms/'+mojeMisto+'/players/'+mujId).onDisconnect().remove();
-
-    db.ref('rooms/'+mojeMisto+'/players').on('value', snap => {
-        const list = document.getElementById('lobby-list'); list.innerHTML = "";
-        let allDone = true, count = 0;
-        snap.forEach(p => {
-            count++; let pd = p.val();
-            list.innerHTML += `<div class="player-row"><span>${pd.name}</span> <span class="${pd.finish?'player-ready':''}"> ${pd.finish?'HOTOVO':'ČEKÁ'}</span></div>`;
-            if(!pd.finish) allDone = false;
-        });
-        if(jeHost && allDone && count > 0) {
-            db.ref('rooms/'+mojeMisto+'/status').once('value', s => {
-                if(s.val() === 'go') {
-                    coins += 15; localStorage.setItem('mm_coins', coins);
-                    document.getElementById('coin-val').innerText = coins;
-                    if(aktualniLevel < maxLevelu) db.ref('rooms/'+mojeMisto).update({ level: aktualniLevel+1 });
-                    else db.ref('rooms/'+mojeMisto).update({ status: 'winner' });
-                }
-            });
-        }
-    });
-
-    db.ref('rooms/'+mojeMisto+'/status').on('value', snap => {
-        if(snap.val() === 'go') spustitHru();
-        if(snap.val() === 'winner') {
-            document.getElementById('game').style.display = 'none';
-            document.getElementById('win-screen').style.display = 'flex';
-        }
-    });
-}
-
-function odstartovat() { db.ref('rooms/'+mojeMisto).update({ status: 'go' }); }
-
-function spustitHru() {
-    document.getElementById('screen-lobby').style.display = 'none';
-    document.getElementById('game').style.display = 'block';
-    document.querySelector('.top-ui').style.display = 'none';
-    db.ref('rooms/'+mojeMisto+'/level').on('value', snap => { if(snap.val()){ aktualniLevel=snap.val(); resetLevelu(); } });
-    db.ref('rooms/'+mojeMisto+'/players').on('value', snap => { vykreslitHrace(snap.val()); });
-    setInterval(() => { if(!hotov) db.ref('rooms/'+mojeMisto+'/players/'+mujId).update({x:mojePos.x, y:mojePos.y}); }, 50);
-}
-
-function resetLevelu() {
-    hotov = false; document.getElementById('waiting').style.display = "none";
-    document.getElementById('lvl').innerText = aktualniLevel;
-    const m = mapy[(aktualniLevel - 1) % mapy.length];
-    document.getElementById('game').style.background = m.bg;
-    const map = document.getElementById('map'); map.innerHTML = "";
-    mojePos = { x: 25, y: 25 };
+async function start(isHost) {
+    let nick = document.getElementById('nick').value || "Hráč";
+    roomId = isHost ? Math.floor(1000+Math.random()*8999).toString() : document.getElementById('room-id').value;
     
-    // Generování zdi (tvůj algoritmus)
+    if(isHost) {
+        await db.ref('rooms/'+roomId).set({
+            biom: Math.floor(Math.random()*biomes.length),
+            seed: Math.random()
+        });
+    }
+
+    document.getElementById('screen-start').style.display = 'none';
+    document.getElementById('game').style.display = 'block';
+
+    db.ref('rooms/'+roomId+'/players/'+myId).set({ n: nick, x: 100, y: 100 });
+    db.ref('rooms/'+roomId+'/players').on('value', drawPlayers);
+    db.ref('rooms/'+roomId).once('value', snap => buildMap(snap.val()));
+}
+
+function buildMap(data) {
+    const biom = biomes[data.biom];
+    document.body.style.background = biom.bg;
+    document.getElementById('biom-name').innerText = biom.n;
+    const m = document.getElementById('map');
+    m.className = biom.fx;
+    m.innerHTML = "";
+
+    // Generování 3D kostek s obrysem
     for(let i=0; i<40; i++) {
-        let o = document.createElement('div'); o.className = 'obs';
-        o.style.left = Math.random() * (window.innerWidth-40) + "px";
-        o.style.top = Math.random() * (window.innerHeight-200) + "px";
-        map.appendChild(o);
+        let b = document.createElement('div');
+        b.className = 'obs';
+        b.style.width = (50 + Math.random()*150) + "px";
+        b.style.height = "40px";
+        b.style.left = Math.random()*(window.innerWidth-150) + "px";
+        b.style.top = Math.random()*(window.innerHeight-250) + "px";
+        b.style.background = biom.wall;
+        m.appendChild(b);
+    }
+
+    // Cíl
+    let g = document.createElement('div');
+    g.className = 'goal';
+    g.innerHTML = "CÍL";
+    g.style.left = (window.innerWidth - 120) + "px";
+    g.style.top = (window.innerHeight - 250) + "px";
+    m.appendChild(g);
+}
+
+function move(dir) {
+    if(isFinished) return;
+    let step = 20;
+    if(dir=='u') myPos.y -= step; if(dir=='d') myPos.y += step;
+    if(dir=='l') myPos.x -= step; if(dir=='r') myPos.x += step;
+
+    myPos.x = Math.max(0, Math.min(window.innerWidth-40, myPos.x));
+    myPos.y = Math.max(0, Math.min(window.innerHeight-150, myPos.y));
+
+    db.ref('rooms/'+roomId+'/players/'+myId).update({ x: myPos.x, y: myPos.y });
+
+    if(myPos.x > window.innerWidth-150 && myPos.y > window.innerHeight-300) {
+        isFinished = true;
+        alert("MAPA DOKONČENA!");
+        location.reload();
     }
 }
 
-function pohyb(s) {
-    if(hotov) return;
-    let k = 20, nx = mojePos.x, ny = mojePos.y;
-    if(s=='u') ny -= k; if(s=='d') ny += k;
-    if(s=='l') nx -= k; if(s=='r') nx += k;
-    mojePos.x = nx; mojePos.y = ny;
-    if(ny > window.innerHeight - 250) { 
-        hotov = true; document.getElementById('waiting').style.display = "block";
-        db.ref('rooms/'+mojeMisto+'/players/'+mujId).update({ finish: true });
-    }
-}
-
-function vykreslitHrace(hraci) {
+function drawPlayers(snap) {
+    const players = snap.val();
     document.querySelectorAll('.player').forEach(p => p.remove());
-    for(let id in hraci) {
-        let p = hraci[id];
-        let d = document.createElement('div'); d.className = 'player';
-        d.style.left = p.x + "px"; d.style.top = p.y + "px";
-        d.style.background = (id === mujId) ? 'var(--accent)' : 'var(--p)';
-        d.innerHTML = `<div style="position:absolute; top:-20px; font-size:10px; white-space:nowrap;">${p.name}</div>`;
-        document.getElementById('map').appendChild(d);
+    for(let id in players) {
+        let p = players[id];
+        let div = document.createElement('div');
+        div.className = 'player';
+        div.style.left = p.x + "px"; div.style.top = p.y + "px";
+        div.style.background = (id === myId) ? 'var(--accent)' : 'var(--p)';
+        div.innerHTML = `<div class="p-name">${p.n}</div>😎`;
+        document.getElementById('map').appendChild(div);
     }
 }
 </script>
